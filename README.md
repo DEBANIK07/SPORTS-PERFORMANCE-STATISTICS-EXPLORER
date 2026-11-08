@@ -5,7 +5,7 @@ A Flask website for analysing event times and scores of anonymised athletes acro
 ## Run it
 
 ### On Windows
-You can simply double-click [`run.bat`](run.bat) to launch the app and automatically open it in your browser.
+You can simply double-click [`run.bat`](run.bat) to launch the app and automatically open it in your browser/ click on http://127.0.0.1:5000
 
 Or manually in terminal:
 ```bash
