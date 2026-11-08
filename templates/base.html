@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Performance Explorer{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('dashboard') }}"><span class="mark">◆</span> Performance Explorer</a>
+  <nav>
+    <a href="{{ url_for('dashboard') }}" class="{{ 'on' if request.endpoint == 'dashboard' }}">Dashboard</a>
+    <a href="{{ url_for('records') }}" class="{{ 'on' if request.endpoint == 'records' }}">Records</a>
+    <a href="{{ url_for('method') }}" class="{{ 'on' if request.endpoint == 'method' }}">Method</a>
+  </nav>
+</header>
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}<div class="flashes">
+      {% for cat, msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+    </div>{% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer>Athletes are identified by anonymised IDs only. Built with Flask · NumPy · Pandas · Matplotlib.</footer>
+</body>
+</html>

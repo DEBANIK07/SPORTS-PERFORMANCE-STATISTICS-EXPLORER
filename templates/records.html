@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Records · Performance Explorer{% endblock %}
+{% block content %}
+<section class="head"><div><h1>Records</h1>
+  <p class="sub">Stored in <code>data/athletes.csv</code> and <code>data/results.csv</code>. Every entry is validated before it's saved.</p></div></section>
+
+<section class="grid2">
+  <form class="card form" method="post">
+    <h2>Log a result</h2>
+    <input type="hidden" name="kind" value="result">
+    <label>Athlete<select name="athlete_id" required>
+      {% for aid, a in athletes.items() %}<option value="{{ aid }}">{{ aid }} · {{ a.squad }}</option>{% endfor %}
+    </select></label>
+    <label>Event<select name="event">
+      {% for key, e in EVENTS.items() %}<option value="{{ key }}">{{ e.label }} ({{ e.unit }}, {{ e.min }}–{{ e.max }})</option>{% endfor %}
+    </select></label>
+    <div class="row">
+      <label>Session<input name="session" type="number" min="1" value="{{ next_session }}" required></label>
+      <label>Date<input name="date" type="date" required></label>
+    </div>
+    <label>Result<input name="result" inputmode="decimal" placeholder="e.g. 11.84" required></label>
+    <button class="btn">Save result</button>
+  </form>
+
+  <div>
+    <form class="card form" method="post">
+      <h2>Register an athlete</h2>
+      <input type="hidden" name="kind" value="athlete">
+      <div class="row">
+        <label>Anonymised ID<input name="athlete_id" placeholder="A09" pattern="[Aa][0-9]{2,3}" required></label>
+        <label>Squad<select name="squad">{% for s in SQUADS %}<option>{{ s }}</option>{% endfor %}</select></label>
+      </div>
+      <button class="btn">Add athlete</button>
+    </form>
+
+    <form class="card form" method="post" enctype="multipart/form-data">
+      <h2>Import / export</h2>
+      <input type="hidden" name="kind" value="import">
+      <p class="hint">CSV columns: <code>athlete_id,event,session,date,result</code>. Invalid rows are rejected with a reason; valid ones are appended.</p>
+      <input type="file" name="file" accept=".csv,text/csv">
+      <div class="row"><button class="btn">Import CSV</button>
+        <a class="btn ghost" href="{{ url_for('export_results') }}">Download all results</a></div>
+    </form>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Athletes</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>Squad</th>{% for key, e in EVENTS.items() %}<th class="r">{{ e.label }} sessions</th>{% endfor %}<th></th></tr></thead>
+    <tbody>{% for aid, a in athletes.items() %}
+      <tr><td><b>{{ aid }}</b></td><td>{{ a.squad }}</td>
+        {% for key in EVENTS %}<td class="r">{{ a.session_count(key) }}</td>{% endfor %}
+        <td><a href="{{ url_for('athlete_page', athlete_id=aid) }}">Open →</a></td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

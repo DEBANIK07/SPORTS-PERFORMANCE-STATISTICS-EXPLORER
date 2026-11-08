@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Method · Performance Explorer{% endblock %}
+{% block content %}
+<section class="head"><div><h1>How improvement is assessed</h1>
+  <p class="sub">The goal: tell steady progress apart from a single standout result.</p></div></section>
+<section class="card prose">
+  <p>Times are flipped in sign before analysis so that “higher = better” for every event. With at least
+     {{ min_sessions }} sessions, five pieces of evidence are computed with NumPy:</p>
+  <ol>
+    <li><b>Trend slope</b> — a least-squares line through every session (<code>np.polyfit</code>).</li>
+    <li><b>Gains hit rate</b> — the share of session-to-session changes that were improvements.</li>
+    <li><b>Rank correlation</b> — Spearman’s ρ between session number and performance (are results ordered?).</li>
+    <li><b>Biggest-jump share</b> — how much of all the gains came from the single largest jump, and how large that jump is versus a typical change.</li>
+    <li><b>Leave-one-out trend</b> — the slope is recomputed with each session removed. If removing one session wipes out most of the trend, that session was carrying it.</li>
+  </ol>
+  <h3>Verdicts</h3>
+  <table>
+    <tr><td><span class="badge good">Consistent improvement</span></td><td>Positive trend, ≥60% of changes are gains, ρ ≥ 0.7, trend clearly above noise, and no single session is propping it up.</td></tr>
+    <tr><td><span class="badge warn">Driven by one result</span></td><td>Positive trend, but one jump is ≥2.5× a typical change <em>and</em> either supplies ≥60% of the gains or its removal halves the trend.</td></tr>
+    <tr><td><span class="badge warn">Inconsistent improvement</span></td><td>Trending up, but results bounce around too much to call it steady.</td></tr>
+    <tr><td><span class="badge bad">No clear improvement</span></td><td>Flat trend, or an upward drift smaller than normal session noise.</td></tr>
+    <tr><td><span class="badge bad">Declining</span></td><td>Trend going the wrong way and results ordered that way (ρ ≤ −0.5).</td></tr>
+  </table>
+  <p class="hint">A “driven by one result” verdict can mean a one-off great day (performance falls back afterwards) or a genuine
+    breakthrough that held. Check the athlete’s chart: if results stay at the new level, it’s a step change, not a fluke.</p>
+</section>
+{% endblock %}

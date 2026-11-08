@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ athlete.athlete_id }} · Performance Explorer{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <p class="crumb"><a href="{{ url_for('dashboard') }}">Dashboard</a> / Athlete</p>
+    <h1>{{ athlete.athlete_id }} <span class="pill">{{ athlete.squad }}</span></h1>
+    <p class="sub">{{ athlete.session_count() }} sessions · {{ athlete.events|length }} events</p>
+  </div>
+</section>
+
+{% for p in panels %}
+<section class="card">
+  <div class="card-head">
+    <h2>{{ p.spec.label }}</h2>
+    <span class="badge {{ p.a.tone }} big">{{ p.a.verdict }}</span>
+  </div>
+  <div class="athlete-grid">
+    <div>
+      <img class="chart" src="data:image/png;base64,{{ p.chart }}" alt="{{ p.spec.label }} results by session with trend line">
+      <ul class="reasons">{% for r in p.a.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+    </div>
+    <div>
+      <div class="stats">
+        <div><span>Mean</span><b>{{ p.mean|num }}</b></div>
+        <div><span>SD</span><b>{{ p.std|num(3) }}</b></div>
+        <div><span>CV</span><b>{{ p.cv|num(1) }}%</b></div>
+        <div><span>Best</span><b>{{ p.best|num }}</b></div>
+        <div><span>Change</span><b>{% if p.improvement[1] is not none %}{{ '%+.1f'|format(p.improvement[1]) }}%{% else %}—{% endif %}</b></div>
+        {% if p.a.slope is defined %}
+        <div><span>Trend / session</span><b>{{ '%+.3f'|format(p.a.unit_slope) }}</b></div>
+        <div><span>Gains hit rate</span><b>{{ (p.a.hit_rate*100)|round|int }}%</b></div>
+        <div><span>Rank corr.</span><b>{{ '%+.2f'|format(p.a.rho) }}</b></div>
+        <div><span>Biggest-jump share</span><b>{{ (p.a.dominance*100)|round|int }}%</b></div>
+        <div><span>Trend kept w/o 1 session</span><b>{{ ([p.a.loo_ratio,0]|max*100)|round|int }}%</b></div>
+        {% endif %}
+      </div>
+      <table class="compact">
+        <thead><tr><th>S</th><th>Date</th><th class="r">Result</th><th class="r">Δ</th><th></th></tr></thead>
+        <tbody>{% for s, d, v, delta in p.rows %}
+          <tr><td>{{ s }}</td><td class="muted">{{ d }}</td><td class="r">{{ v|num }}</td>
+            <td class="r {{ 'pos' if delta and delta > 0 else ('neg' if delta and delta < 0) }}">
+              {% if delta is not none %}{{ '%+.2f'|format(delta) }}{% endif %}</td>
+            <td><form method="post" action="{{ url_for('records') }}">
+              <input type="hidden" name="kind" value="delete"><input type="hidden" name="athlete_id" value="{{ athlete.athlete_id }}">
+              <input type="hidden" name="event" value="{{ p.event }}"><input type="hidden" name="session" value="{{ s }}">
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button class="x" title="Delete this result">×</button></form></td></tr>
+        {% endfor %}</tbody>
+      </table>
+      <p class="hint">Δ is signed so positive means better than the previous session.</p>
+    </div>
+  </div>
+</section>
+{% else %}
+<div class="card empty">No results recorded for this athlete yet.</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ spec.label }} · Performance Explorer{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <h1>{{ spec.label }}</h1>
+    <p class="sub">{{ 'Lower' if not spec.higher_is_better else 'Higher' }} is better · results in {{ spec.unit }}</p>
+  </div>
+  <form class="filters" method="get">
+    <div class="seg">
+      {% for key, e in EVENTS.items() %}
+        <a href="?event={{ key }}{% if squad %}&squad={{ squad }}{% endif %}" class="{{ 'on' if key == event }}">{{ e.label }}</a>
+      {% endfor %}
+    </div>
+    <input type="hidden" name="event" value="{{ event }}">
+    <select name="squad" onchange="this.form.submit()">
+      <option value="">All squads</option>
+      {% for s in SQUADS %}<option {{ 'selected' if s == squad }}>{{ s }}</option>{% endfor %}
+    </select>
+  </form>
+</section>
+
+{% if report.empty %}
+  <div class="card empty">No results for this event yet. <a href="{{ url_for('records') }}">Add some records</a>.</div>
+{% else %}
+{% set top = report.iloc[0] %}
+<section class="tiles">
+  <div class="tile"><span class="label">Athletes</span><span class="value">{{ report|length }}</span><span class="note">{{ total_sessions }} results logged</span></div>
+  <div class="tile"><span class="label">Top ranked</span><span class="value">{{ top.athlete_id }}</span><span class="note">best {{ top.best|num }} {{ spec.unit }}</span></div>
+  <div class="tile"><span class="label">Cohort mean</span><span class="value">{{ report['mean'].mean()|num }}</span><span class="note">{{ spec.unit }} across athletes</span></div>
+  <div class="tile"><span class="label">Consistent improvers</span>
+    <span class="value">{{ (report.verdict == 'Consistent improvement').sum() }}<small> / {{ report|length }}</small></span>
+    <span class="note">rest: one-off, noisy or flat</span></div>
+</section>
+
+<section class="card">
+  <h2>Is improvement consistent?</h2>
+  <div class="verdict-bar">
+    {% for label, n, tone in verdict_counts %}
+      <div class="vseg {{ tone }}" style="flex: {{ n }}"><span>{{ label }}</span><b>{{ n }}</b></div>
+    {% endfor %}
+  </div>
+  <p class="hint">An athlete counts as a consistent improver only if most session-to-session changes were gains
+    <em>and</em> the trend survives removing any single session. <a href="{{ url_for('method') }}">How this is decided →</a></p>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Event report</h2><a class="btn ghost" href="{{ url_for('export_report', event=event) }}">Download CSV</a></div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th>Rank</th><th>Athlete</th><th>Squad</th><th class="r">Sessions</th><th class="r">Mean</th><th class="r">SD</th>
+      <th class="r">CV %</th><th class="r">Best</th><th class="r">Latest</th><th class="r">Improvement</th><th>Assessment</th>
+    </tr></thead>
+    <tbody>
+    {% for r in report.itertuples() %}
+      <tr>
+        <td class="rank">{{ r.rank }}</td>
+        <td><a href="{{ url_for('athlete_page', athlete_id=r.athlete_id) }}"><b>{{ r.athlete_id }}</b></a></td>
+        <td>{{ r.squad }}</td>
+        <td class="r">{{ r.sessions }}</td>
+        <td class="r">{{ r.mean|num }}</td>
+        <td class="r">{{ r.std|num(3) }}</td>
+        <td class="r">{{ r.cv_pct|num(1) }}</td>
+        <td class="r"><b>{{ r.best|num }}</b></td>
+        <td class="r">{{ r.latest|num }}</td>
+        <td class="r {{ 'pos' if r.improvement_pct and r.improvement_pct > 0 else 'neg' }}">
+          {% if r.improvement_pct == r.improvement_pct and r.improvement_pct is not none %}{{ '%+.1f'|format(r.improvement_pct) }}%{% else %}—{% endif %}</td>
+        <td><span class="badge {{ r.tone }}">{{ r.verdict }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="hint">Improvement = first vs latest session, signed so positive always means better. CV = SD ÷ mean.</p>
+</section>
+
+<section class="grid2">
+  <div class="card"><h2>Mean vs best by athlete</h2>
+    <img class="chart" src="data:image/png;base64,{{ bar_chart }}" alt="Bar chart comparing each athlete's mean result with error bars and best result"></div>
+  <div class="card"><h2>Results across sessions</h2>
+    <img class="chart" src="data:image/png;base64,{{ line_chart }}" alt="Line chart of each athlete's results by session"></div>
+</section>
+
+<section class="grid2">
+  <div class="card"><h2>Squad summary</h2>
+    <table><thead><tr><th>Squad</th><th class="r">Athletes</th><th class="r">Mean result</th><th class="r">Avg improvement</th><th class="r">Consistent</th></tr></thead>
+    <tbody>{% for s in squads.itertuples() %}
+      <tr><td>{{ s.squad }}</td><td class="r">{{ s.athletes }}</td><td class="r">{{ s.mean_result|num }}</td>
+      <td class="r">{{ '%+.1f'|format(s.mean_improvement_pct) }}%</td><td class="r">{{ s.consistent }}</td></tr>
+    {% endfor %}</tbody></table>
+  </div>
+  <div class="card"><h2>Session grid <span class="muted">({{ spec.unit }})</span></h2>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Athlete</th>{% for c in pivot.columns %}<th class="r">S{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for aid, row in pivot.iterrows() %}
+        <tr><td><b>{{ aid }}</b></td>{% for v in row %}<td class="r">{{ v|num }}</td>{% endfor %}</tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
