@@ -126,4 +126,20 @@ def method():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+    import socket
+    import threading
+    import webbrowser
+
+    # Check if port 5000 is already active
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        port_in_use = (s.connect_ex(("127.0.0.1", 5000)) == 0)
+
+    if port_in_use and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        print("\n[NOTE] Server is already running at http://127.0.0.1:5000!")
+        print("Opening http://127.0.0.1:5000 in your web browser...\n")
+        webbrowser.open("http://127.0.0.1:5000")
+    else:
+        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            threading.Timer(0.8, lambda: webbrowser.open("http://127.0.0.1:5000")).start()
+        app.run(debug=True)
